@@ -160,6 +160,8 @@ export default function App() {
                 </RequireAuth>
               }
             />
+            {/* Catch-all route: redirect unknown paths to home */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Box>
       </AppContext.Provider>
