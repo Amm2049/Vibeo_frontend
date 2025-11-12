@@ -9,6 +9,7 @@ import {
   Avatar,
   Divider,
   IconButton,
+  CircularProgress,
   // useTheme,
 } from "@mui/material";
 import {
@@ -26,6 +27,7 @@ export default function Signup() {
   const [bio, setBio] = useState("");
   const [profileImage, setProfileImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleImageChange = (e) => {
     if (e.target.files[0]) {
@@ -37,6 +39,7 @@ export default function Signup() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
 
     try {
       const api = import.meta.env.VITE_API;
@@ -58,6 +61,7 @@ export default function Signup() {
       const data = await res.json();
       if (data.token) {
         // localStorage.setItem("jwt", data.token);
+        setIsLoading(false);
         navigate("/signin");
       }
     } catch (err) {
@@ -287,7 +291,7 @@ export default function Signup() {
               transition: "all 0.2s ease",
             }}
           >
-            Sign Up
+            {isLoading ? <CircularProgress /> : "Sign In"}
           </Button>
         </form>
 

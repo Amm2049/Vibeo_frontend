@@ -31,23 +31,32 @@ export default function Home() {
   const { isAuthenticated, currentUser } = useApp();
 
   const handleLike = async (postId) => {
-    // Determine current displayed like state (optimistic or real)
-    const currentlyLiked =
-      likedPosts[postId] !== undefined
-        ? likedPosts[postId]
-        : posts
-            .find((p) => p.id === postId)
-            ?.likesInfo?.some((like) => like.user_id === currentUser?.id) ||
-          false;
+    const post = posts.find((p) => p.id === postId);
+    if (!post) return;
 
-    const newLikedState = !currentlyLiked;
+    const wasLiked =
+      post.likesInfo?.some((like) => like.user_id === currentUser?.id) || false;
+    const willBeLiked = !wasLiked;
 
-    // Optimistically update UI
-    setLikedPosts((prev) => ({ ...prev, [postId]: newLikedState }));
+    // Optimistically update likedPosts (for the icon)
+    setLikedPosts((prev) => ({ ...prev, [postId]: willBeLiked }));
+
+    // Optimistically update the post's likesInfo and likes count in posts state
+    const updatedPost = {
+      ...post,
+      likes: willBeLiked ? (post.likes || 0) + 1 : (post.likes || 0) - 1,
+      likesInfo: willBeLiked
+        ? [...(post.likesInfo || []), { user_id: currentUser.id }]
+        : (post.likesInfo || []).filter(
+            (like) => like.user_id !== currentUser.id
+          ),
+    };
+
+    setPosts((prev) => prev.map((p) => (p.id === postId ? updatedPost : p)));
 
     try {
       const res = await fetch(`${apiUrl}/reaction/toggle`, {
-        method: currentlyLiked ? "DELETE" : "POST",
+        method: wasLiked ? "DELETE" : "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("jwt")}`,
@@ -56,12 +65,20 @@ export default function Home() {
       });
 
       if (!res.ok) throw new Error("Failed to sync like");
-
-      // Optionally refetch posts or update counts — for now, rely on next fetch or keep optimistic
+      // Success: keep the optimistic update
     } catch (err) {
-      // Revert optimistic update on error
-      setLikedPosts((prev) => ({ ...prev, [postId]: currentlyLiked }));
       console.error("Like toggle failed:", err);
+
+      // ❌ Revert both likedPosts AND posts state on error
+      setLikedPosts((prev) => ({ ...prev, [postId]: wasLiked }));
+
+      const revertedPost = {
+        ...post,
+        likes: post.likes,
+        likesInfo: post.likesInfo,
+      };
+
+      setPosts((prev) => prev.map((p) => (p.id === postId ? revertedPost : p)));
     }
   };
 
@@ -166,7 +183,7 @@ export default function Home() {
   return (
     <Box
       sx={{
-        maxWidth: 600,
+        maxWidth: 500,
         mx: "auto",
         py: 3,
         px: 2,
@@ -235,7 +252,7 @@ export default function Home() {
                 <Box
                   sx={{
                     width: "100%",
-                    maxHeight: 500,
+                    maxHeight: 400,
                     overflow: "hidden",
                     borderRadius: 1,
                     display: "flex",

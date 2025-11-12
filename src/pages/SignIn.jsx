@@ -8,6 +8,7 @@ import {
   Typography,
   Avatar,
   Divider,
+  CircularProgress,
   //   useTheme,
 } from "@mui/material";
 import { Lock as LockIcon } from "@mui/icons-material";
@@ -18,9 +19,11 @@ export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isError, setIsError] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setIsLoading(true);
 
     const api = import.meta.env.VITE_API;
     fetch(`${api}/users/signin`, {
@@ -32,8 +35,9 @@ export default function Login() {
     }).then(async (res) => {
       const data = await res.json();
 
-      if (data.token !== undefined) {
+      if (res.ok) {
         localStorage.setItem("jwt", data.token);
+        setIsLoading(false);
         navigate("/"); // Redirect to home on success
       } else {
         setIsError(true);
@@ -163,7 +167,7 @@ export default function Login() {
               transition: "all 0.2s ease",
             }}
           >
-            Sign In
+            {isLoading ? <CircularProgress /> : "Sign In"}
           </Button>
         </form>
 
